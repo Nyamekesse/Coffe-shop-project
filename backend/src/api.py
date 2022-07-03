@@ -46,6 +46,7 @@ def get_drinks():
 '''
 
 
+@requires_auth('get:drinks-detail')
 @app.route('/drinks-detail', methods=['GET'])
 def get_drink_details():
     pass
@@ -62,6 +63,7 @@ def get_drink_details():
 '''
 
 
+@requires_auth('post:drinks')
 @app.route('/drinks', methods=['POST'])
 def add_new_drink():
     pass
@@ -80,6 +82,7 @@ def add_new_drink():
 '''
 
 
+@requires_auth('patch:drinks')
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 def update_drinks(id):
     pass
@@ -97,7 +100,8 @@ def update_drinks(id):
 '''
 
 
-@app.route('/drinks/<int:id>')
+@requires_auth('delete:drinks')
+@app.route('/drinks/<int:id>', methods=['DELETE'])
 def delete_drink(id):
     pass
 
