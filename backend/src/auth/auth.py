@@ -1,17 +1,17 @@
+from os import environ
 import json
-from flask import abort, request, _request_ctx_stack
+from flask import request, _request_ctx_stack, abort
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
-auth_domain = os.getenv("AUTH0_DOMAIN")
-api_audience = os.getenv("API_AUDIENCE")
-AUTH0_DOMAIN = auth_domain
+
+# AUTH0_DOMAIN ='coffee-shop-project-udacity.us.auth0.com'
+# ALGORITHMS = ['RS256']
+# API_AUDIENCE = 'coffee-shop'
+AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN')
 ALGORITHMS = ['RS256']
-API_AUDIENCE = api_audience
+API_AUDIENCE = environ.get('API_AUDIENCE')
 
 # AuthError Exception
 '''
@@ -28,7 +28,11 @@ class AuthError(Exception):
 
 # Auth Header
 
+
+
+
 def get_token_auth_header():
+ 
     """Obtains the Access Token from the Authorization Header
     """
     auth = request.headers.get('Authorization', None)
@@ -58,22 +62,8 @@ def get_token_auth_header():
         }, 401)
 
     token = parts[1]
+ 
     return token
-
-
-def check_permissions(permission, payload):
-    if 'permissions' not in payload:
-        raise AuthError({
-            'code': 'invalid_claims',
-            'description': 'Permissions not included in JWT.'
-        }, 400)
-
-    if permission not in payload['permissions']:
-        raise AuthError({
-            'code': 'unauthorized',
-            'description': 'Permission not found.'
-        }, 403)
-    return True
 
 
 def verify_decode_jwt(token):
@@ -125,31 +115,57 @@ def verify_decode_jwt(token):
                 'description': 'Unable to parse authentication token.'
             }, 400)
     raise AuthError({
-        'code': 'invalid_header',
+                'code': 'invalid_header',
                 'description': 'Unable to find the appropriate key.'
-    }, 400)
+            }, 400)
 
 
-def requires_auth(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        token = get_token_auth_header()
-        try:
-            payload = verify_decode_jwt(token)
-        except:
-            abort(401)
-        return f(payload, *args, **kwargs)
 
-    return wrapper
+
+
+def check_permissions(permission, payload):
+
+    if 'permissions' not in payload:
+        abort(400)
+
+    if permission not in payload['permissions']:
+        raise AuthError({
+            'code': 'unauthorized',
+            'description': 'Permission Not found',
+        }, 401)
+    return True
+
+
+
+
+
+
+
+'''
+@TODO implement @requires_auth(permission) decorator method
+    @INPUTS
+        permission: string permission (i.e. 'post:drink')
+
+    it should use the get_token_auth_header method to get the token
+    it should use the verify_decode_jwt method to decode the jwt
+    it should use the check_permissions method validate claims
+    and check the requested permission
+    return the decorator which passes the decoded payload to the
+    decorated method
+'''
 
 
 def requires_auth(permission=''):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+    
             token = get_token_auth_header()
+
             payload = verify_decode_jwt(token)
+   
             check_permissions(permission, payload)
+
             return f(payload, *args, **kwargs)
 
         return wrapper
