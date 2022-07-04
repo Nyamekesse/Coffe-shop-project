@@ -1,7 +1,7 @@
-from crypt import methods
+# from crypt import methods
 import os
+from turtle import title
 from flask import Flask, request, jsonify, abort
-from sqlalchemy import exc
 import json
 from flask_cors import CORS
 
@@ -33,7 +33,19 @@ CORS(app)
 
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
-    pass
+    try:
+        available_drinks = Drink.query.order_by(Drink.id).all()
+        if(len(available_drinks) == 0):
+            abort(404)
+        else:
+            drinks = available_drinks.short()
+            return jsonify({
+                'success': True,
+                'drinks': drinks
+            })
+
+    except:
+        abort(404)
 
 
 '''
@@ -46,10 +58,22 @@ def get_drinks():
 '''
 
 
-@requires_auth('get:drinks-detail')
+# @requires_auth('get:drinks-detail')
 @app.route('/drinks-detail', methods=['GET'])
 def get_drink_details():
-    pass
+    try:
+        available_drinks = Drink.query.order_by(Drink.id).all()
+        if(len(available_drinks) == 0):
+            abort(404)
+        else:
+            drinks = available_drinks.long()
+            return jsonify({
+                'success': True,
+                'drinks': drinks
+            })
+
+    except:
+        abort(404)
 
 
 '''
@@ -63,10 +87,22 @@ def get_drink_details():
 '''
 
 
-@requires_auth('post:drinks')
+# @requires_auth('post:drinks')
 @app.route('/drinks', methods=['POST'])
 def add_new_drink():
-    pass
+    body = request.get_json()
+    if body == None:
+        abort(422)
+    else:
+        try:
+            drink = Drink(title=body.get('title'), recipe=body.get('recipe'))
+            drink.add()
+            return jsonify({
+                'success': True,
+                'drink': drink.long()
+            })
+        except:
+            abort(401)
 
 
 '''
@@ -82,10 +118,26 @@ def add_new_drink():
 '''
 
 
-@requires_auth('patch:drinks')
+# @requires_auth('patch:drinks')
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 def update_drinks(id):
-    pass
+    body = request.get_json()
+    if body == None:
+        abort(422)
+    else:
+        try:
+            drink = Drink.query.filter_by(Drink.id == id).one_or_none()
+            if drink == None:
+                abort(404)
+            drink.title = body.get('title')
+            drink.recipe = body.get('recipe')
+            drink.update()
+            return jsonify({
+                'success': True,
+                'drinks': drink.long()
+            })
+        except:
+            abort(401)
 
 
 '''
@@ -100,16 +152,21 @@ def update_drinks(id):
 '''
 
 
-@requires_auth('delete:drinks')
+# @requires_auth('delete:drinks')
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 def delete_drink(id):
-    pass
+    try:
+        drink = Drink.query.filter_by(Drink.id == id).one_or_none()
+        drink.delete()
+        return jsonify({
+            'success': True,
+            'delete': id
+        })
+    except:
+        abort(404)
 
 
 # Error Handling
-'''
-Example error handling for unprocessable entity
-'''
 
 
 @app.errorhandler(422)
@@ -121,24 +178,28 @@ def unprocessable(error):
     }), 422
 
 
-'''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
-    each error handler should return (with approprate messages):
-             jsonify({
-                    "success": False,
-                    "error": 404,
-                    "message": "resource not found"
-                    }), 404
-
-'''
-
-'''
-@TODO implement error handler for 404
-    error handler should conform to general task above
-'''
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": "resource not found"
+    }), 404
 
 
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above
-'''
+@app.errorhandler(401)
+def unauthorized(error):
+    return jsonify({
+        "success": False,
+        "error": 401,
+        "message": "unauthorized"
+    }), 401
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    return jsonify({
+        "success": False,
+        "error": 403,
+        "message": "forbidden"
+    }), 403
